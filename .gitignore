@@ -1,0 +1,19 @@
+# Build outputs
+MDK-ARM/test_feedback/
+MDK-ARM/**/*.o
+MDK-ARM/**/*.d
+MDK-ARM/**/*.crf
+MDK-ARM/**/*.axf
+MDK-ARM/**/*.hex
+MDK-ARM/**/*.map
+MDK-ARM/**/*.dep
+MDK-ARM/**/*.htm
+MDK-ARM/**/*.lnp
+
+# IDE/runtime logs
+MDK-ARM/.vscode/*.log
+MDK-ARM/.vscode/*.lock
+
+# Temporary/system
+*.tmp
+Thumbs.db
