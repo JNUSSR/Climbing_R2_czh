@@ -21,6 +21,9 @@ void Climbing_Next_Step(void);
 void Climbing_Auto_Start(void);
 void Climbing_Auto_Start_20cm(void);
 void Climbing_Auto_Start_40cm(void);
+void Climbing_Prepare_40cm(void);
+void Climbing_Auto_Start_From_Touch_20cm(void);
+void Climbing_Auto_Start_From_Touch_40cm(void);
 void Climbing_Descend_Auto_Start(void);
 void Climbing_Descend_Auto_Start_20cm(void);
 void Climbing_Init_Pose_Start(void);
@@ -31,12 +34,6 @@ uint8_t Climbing_Is_Auto_Running(void);
 void Climbing_Manual_Next(void);
 void Climbing_Descend_Manual_Next(void);
 void Climbing_Manual_Reset(void);
-#ifdef __cplusplus
-void Climbing_Manual_Goto(ClimbingState_e state);
-#endif
-void Climbing_Emergency_Stop(void);
-// 底盘外部接管: 1 外部, 0 状态机
-void Climbing_Set_Chassis_External_Control(uint8_t enable);
 #ifdef __cplusplus
 ClimbingState_e Climbing_Get_State(void);
 #endif

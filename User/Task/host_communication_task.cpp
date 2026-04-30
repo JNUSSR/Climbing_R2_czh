@@ -35,16 +35,10 @@ float g_motor_3508_target_speed = 0.0f;
 // VOFA+ JustFloat 帧尾
 static const uint8_t VOFA_TAIL[4] = {0x00, 0x00, 0x80, 0x7f};
 
-static uint8_t g_mecanum_demo_active = 0;
-static uint8_t g_mecanum_demo_step = 0;
-static uint32_t g_mecanum_demo_tick = 0;
 
 /* Private function prototypes -----------------------------------------------*/
 
 static void Host_UART_Callback(uint8_t *Buffer, uint16_t Length);
-static void Host_Mecanum_Demo_ApplyStep(uint8_t step);
-static void Host_Mecanum_Demo_Start(void);
-static void Host_Mecanum_Demo_Task(void);
 
 /* Function implementation ---------------------------------------------------*/
 
@@ -87,37 +81,6 @@ static void Host_UART_Callback(uint8_t *Buffer, uint16_t Length)
         case 0x10: // 下一步
             Climbing_Manual_Next();
             break;
-        case 0x91: // 下台阶手动下一步
-            Climbing_Descend_Manual_Next();
-            break;
-
-        case 0x11: // 复位到IDLE
-            Climbing_Manual_Reset();
-            break;
-
-        case 0x12: // 紧急停止
-            Climbing_Emergency_Stop();
-            break;
-
-        // ========== 直接跳转 ==========
-        case 0x20:
-            Climbing_Manual_Goto(STEP_SETUP);
-            break;
-        case 0x21:
-            Climbing_Manual_Goto(STEP_WAIT_TRIGGER);
-            break;
-        case 0x22:
-            Climbing_Manual_Goto(STEP_TOUCH_DOWN);
-            break;
-        case 0x23:
-            Climbing_Manual_Goto(STEP_GLOBAL_LIFT);
-            break;
-        case 0x24:
-            Climbing_Manual_Goto(STEP_DRIVE_FWD);
-            break;
-        case 0x25:
-            Climbing_Manual_Goto(STEP_RETRACT);
-            break;
 
         // ========== 自动流程 ==========
         case 0x66:
@@ -132,79 +95,12 @@ static void Host_UART_Callback(uint8_t *Buffer, uint16_t Length)
         case 0x69:
             Climbing_Descend_Auto_Start_20cm();
             break;
-
-        // ========== 麦轮底盘控制 ==========
-        case 0x99:
-            Host_Mecanum_Demo_Start();
-            break;
-
-        default:
-            break;
-    }
-}
-
-static void Host_Mecanum_Demo_ApplyStep(uint8_t step)
-{
-    switch (step)
-    {
-        case MECANUM_DEMO_STEP_FORWARD:
-            Task_Mecanum_Chassis_SetMotion(MECANUM_CMD_VX, 0.0f, 0.0f);
-            break;
-        case MECANUM_DEMO_STEP_BACKWARD:
-            Task_Mecanum_Chassis_SetMotion(-MECANUM_CMD_VX, 0.0f, 0.0f);
-            break;
-        case MECANUM_DEMO_STEP_LEFT:
-            Task_Mecanum_Chassis_SetMotion(0.0f, MECANUM_CMD_VY, 0.0f);
-            break;
-        case MECANUM_DEMO_STEP_RIGHT:
-            Task_Mecanum_Chassis_SetMotion(0.0f, -MECANUM_CMD_VY, 0.0f);
-            break;
-        case MECANUM_DEMO_STEP_ROTATE_RIGHT:
-            Task_Mecanum_Chassis_SetMotion(0.0f, 0.0f, -MECANUM_CMD_VW);
-            break;
-        case MECANUM_DEMO_STEP_ROTATE_LEFT:
-            Task_Mecanum_Chassis_SetMotion(0.0f, 0.0f, MECANUM_CMD_VW);
+        case 0x65:
+            Climbing_Descend_Manual_Next();
             break;
         default:
-            Task_Mecanum_Chassis_SetMotion(0.0f, 0.0f, 0.0f);
             break;
     }
-}
-
-static void Host_Mecanum_Demo_Start(void)
-{
-    g_mecanum_demo_active = 1;
-    g_mecanum_demo_step = MECANUM_DEMO_STEP_FORWARD;
-    g_mecanum_demo_tick = HAL_GetTick();
-    Host_Mecanum_Demo_ApplyStep(g_mecanum_demo_step);
-}
-
-static void Host_Mecanum_Demo_Task(void)
-{
-    uint32_t now_tick;
-
-    if (g_mecanum_demo_active == 0)
-    {
-        return;
-    }
-
-    now_tick = HAL_GetTick();
-    if ((now_tick - g_mecanum_demo_tick) < MECANUM_DEMO_STEP_MS)
-    {
-        return;
-    }
-
-    g_mecanum_demo_tick = now_tick;
-    g_mecanum_demo_step++;
-
-    if (g_mecanum_demo_step >= MECANUM_DEMO_STEP_COUNT)
-    {
-        g_mecanum_demo_active = 0;
-        Task_Mecanum_Chassis_SetMotion(0.0f, 0.0f, 0.0f);
-        return;
-    }
-
-    Host_Mecanum_Demo_ApplyStep(g_mecanum_demo_step);
 }
 
 /**
@@ -232,14 +128,14 @@ void Host_Send_Waveform(void)
     // tx_data[5] = (float)g_climbState;                  // CH6
     // tx_data[6] = Motor_Lift_Front.Get_Out();           // CH7
 
-    tx_data[0] = ctrl.GetMotorLiftFront().Get_Target_Angle();  // CH1: 前腿目标
-    tx_data[1] = ctrl.GetMotorLiftFront().Get_Now_Angle();     // CH2: 前腿实际
-    tx_data[2] = ctrl.GetMotorLiftRear().Get_Target_Angle();   // CH3: 后腿目标
-    tx_data[3] = ctrl.GetMotorLiftRear().Get_Now_Angle();      // CH4: 后腿实际
-    tx_data[4] = (float)ctrl.GetState();                       // CH5: 状态机
-    tx_data[5] = ctrl.GetMotorLiftFront().Get_Out();           // CH6: 前腿PID输出
-    tx_data[6] = ctrl.GetMotorLiftRear().Get_Out();            // CH7: 后腿PID输出
-    
+    tx_data[0] = ctrl.GetFrontTargetAngle();  // CH1: 前腿目标
+    tx_data[1] = ctrl.GetFrontNowAngle();     // CH2: 前腿实际
+    tx_data[2] = ctrl.GetRearTargetAngle();   // CH3: 后腿目标
+    tx_data[3] = ctrl.GetRearNowAngle();      // CH4: 后腿实际
+    tx_data[4] = (float)ctrl.GetState();      // CH5: 状态机
+    tx_data[5] = ctrl.GetFrontOut();          // CH6: 前腿PID输出
+    tx_data[6] = ctrl.GetRearOut();           // CH7: 后腿PID输出
+
     // 发送数据 + 帧尾
     HAL_UART_Transmit(&huart6, (uint8_t*)tx_data, sizeof(tx_data), 10);
     HAL_UART_Transmit(&huart6, (uint8_t*)VOFA_TAIL, 4, 10);
@@ -254,7 +150,6 @@ void Host_Communication_Task(void *argument)
     
     for(;;)
     {
-        Host_Mecanum_Demo_Task();
         Host_Send_Waveform();
         osDelay(10);  // 100Hz 发送频率
     }
